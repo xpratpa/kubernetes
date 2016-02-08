@@ -1,0 +1,168 @@
+#Install Redis Senitel Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: redis
+    role: service
+  name: redis-sentinel
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    name: redis
+---
+
+#Install Redis Replication Controller
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    name: redis
+  template:
+    metadata:
+      labels:
+        name: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:3
+        ports:
+        - containerPort: 6379
+        - containerPort: 16379
+        resources:
+          limits:
+            cpu: "0.1"
+        volumeMounts:
+        - mountPath: /redis-master-data
+          name: data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+
+
+#Install ElasticSearch Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  labels:
+    name: elasticsearch
+spec:
+  type: NodePort
+  selector:
+    name: elasticsearch
+  ports:
+  - name: http
+    port: 9200
+    protocol: TCP
+    nodePort: 30200
+  - name: transport
+    port: 9300
+    protocol: TCP
+  externalIPs: []
+---
+
+#Install ElasticSearch Replication Controller 
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: elasticsearch
+  labels:
+    name: elasticsearch
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: elasticsearch:1.5
+        env:
+        - name: "CLUSTER_NAME"
+          value: "cloudboost"
+        - name: "DISCOVERY_SERVICE"
+          value: "elasticsearch"
+        ports:
+        - containerPort: 9200
+          name: http
+          protocol: TCP
+        - containerPort: 9300
+          name: transport
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /data
+          name: elasticsearch-storage
+      volumes:
+      - name: elasticsearch-storage
+        gcePersistentDisk:
+          pdName: elastic-disk
+          fsType: ext4
+---
+
+#Install MongoDB
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: mongo
+  name: mongo
+spec:
+  type: NodePort
+  ports:
+    - port: 27017
+      targetPort: 27017
+      nodePort: 30017
+  selector:
+    name: mongo
+---
+
+#Install MongoDB Replication Controller
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    name: mongo
+  name: mongo
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: mongo
+    spec:
+      containers:
+      - image: mongo:3.2
+        name: mongo
+        ports:
+        - name: mongo
+          containerPort: 27017
+          hostPort: 27017
+        command:
+            - mongod
+            - "--replSet"
+            - cloudboost
+            - "--smallfiles"
+            - "--noprealloc"
+        volumeMounts:
+            - name: mongo-persistent-storage
+              mountPath: /data/db
+      volumes:
+        - name: mongo-persistent-storage
+          gcePersistentDisk:
+            pdName: mongo-disk
+            fsType: ext4
+---

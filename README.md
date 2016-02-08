@@ -1,6 +1,6 @@
 #Getting Started
 
-Before you begin : 
+**Before you begin :** 
 
 If you're looking for a Docker Compose Solution instead of Kubernetes, Please check it out here : https://github.com/cloudboost/docker
 
@@ -8,15 +8,10 @@ Replace [<Node_IP>] with your cluster physical Node IP's
 
 **Step 1 :**
 
-Run `kubectl create -f cloudboost.yaml`
+Run `kubectl create -f databases.yaml`
+
 
 **Step 2 :**
-
-Delete Redis Master Pod
-
-Run `kubectl delete pods redis-master` for Redis to elect a new master and replication to happen. 
-
-**Step 3 :**
 
 Setup MongoDB Replication
 
@@ -35,6 +30,7 @@ Run `kubectl exec -i <POD_1_NAME> mongo`
 
 and ... 
 
+```
 rs.initiate({ 
      "_id" : "cloudboost", 
      "version":1,
@@ -56,9 +52,11 @@ rs.initiate({
           }
      ]
 });
+```
 
 For Example :  
 
+```
 rs.initiate({  
      "_id" : "cloudboost",
      "version":1,
@@ -80,12 +78,17 @@ rs.initiate({
           }
      ]
 }); 
+```
 
 Please Note : IP's can be different for your cluster. 
 
 Read from MongoDB Slaves 
 
 `rs.slaveOk()`
+
+**Step 3 :**
+
+Run `kubectl create -f server.yaml`
 
 #Todo
 
